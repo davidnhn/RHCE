@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+archive_path="{{ backup_archive_dir }}/appdata-${timestamp}.tar.gz"
+
+tar -czf "${archive_path}" -C "{{ backup_source_dir }}" .

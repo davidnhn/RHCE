@@ -1,0 +1,70 @@
+---
+- name: Deploy a managed web service
+  # "hosts" indique le groupe d'inventaire vise par ce play.
+  hosts: app
+  # "become: true" signifie qu'on execute les taches avec privilèges eleves.
+  become: true
+
+  tasks:
+    - name: Install required packages
+      # dnf est le module "haut rendement" le plus classique pour EX294.
+      ansible.builtin.dnf:
+        name: "{{ app_packages }}"
+        state: present
+
+    - name: Ensure firewalld is enabled and running
+      # On demarre firewalld avant d'ouvrir le service.
+      ansible.builtin.systemd_service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Ensure the web document root exists
+      # Le module file gere les repertoires, permissions, owners, etc.
+      ansible.builtin.file:
+        path: "{{ app_docroot }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy the httpd managed configuration
+      # Le handler ne sera appele que si le fichier change reellement.
+      # template = on rend un fichier Jinja2 avec les variables Ansible.
+      ansible.builtin.template:
+        src: templates/training.conf.j2
+        dest: /etc/httpd/conf.d/training.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart httpd
+
+    - name: Deploy the managed home page
+      # Ici on reutilise inventory_hostname dans le template pour personnaliser par hote.
+      ansible.builtin.template:
+        src: templates/index.html.j2
+        dest: "{{ app_docroot }}/index.html"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure httpd is enabled and started
+      ansible.builtin.systemd_service:
+        name: "{{ app_service_name }}"
+        enabled: true
+        state: started
+
+    - name: Open the firewall service permanently and immediately
+      # permanent + immediate = persistant ET applique maintenant.
+      ansible.posix.firewalld:
+        service: "{{ app_firewall_service }}"
+        permanent: true
+        immediate: true
+        state: enabled
+
+  handlers:
+    - name: restart httpd
+      # Un handler est une tache speciale declenchee par "notify".
+      ansible.builtin.systemd_service:
+        name: "{{ app_service_name }}"
+        state: restarted

@@ -1,0 +1,5 @@
+---
+baseline_packages:
+  - rsync
+
+baseline_motd_environment: mock-exam

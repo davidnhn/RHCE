@@ -1,0 +1,16 @@
+---
+- name: Apply a common baseline role
+  hosts: all
+  become: true
+  roles:
+    - role: baseline_common
+      tags:
+        - baseline
+
+- name: Deploy the managed HTTP service through a role
+  hosts: web
+  become: true
+  roles:
+    - role: managed_httpd
+      tags:
+        - web

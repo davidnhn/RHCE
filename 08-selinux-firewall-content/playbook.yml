@@ -1,0 +1,102 @@
+---
+- name: Deploy a SELinux aware internal portal
+  hosts: portal
+  become: true
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name: "{{ portal_packages }}"
+        state: present
+
+    - name: Ensure firewalld is enabled and running
+      ansible.builtin.systemd_service:
+        name: firewalld
+        enabled: true
+        state: started
+
+    - name: Ensure the custom portal document root exists
+      ansible.builtin.file:
+        path: "{{ portal_docroot }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy the portal landing page
+      ansible.builtin.template:
+        src: templates/index.html.j2
+        dest: "{{ portal_docroot }}/index.html"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Declare the SELinux context for the custom docroot
+      community.general.sefcontext:
+        target: "{{ portal_docroot }}(/.*)?"
+        setype: httpd_sys_content_t
+        state: present
+
+    - name: Restore the SELinux labels on the custom docroot
+      ansible.builtin.command: "restorecon -Rv {{ portal_docroot }}"
+      changed_when: false
+
+    - name: Allow httpd outbound connections if the app needs it
+      ansible.posix.seboolean:
+        name: httpd_can_network_connect
+        state: true
+        persistent: true
+
+    - name: Harden ServerTokens in the main httpd configuration
+      ansible.builtin.lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: "^ServerTokens"
+        line: "ServerTokens Prod"
+        insertafter: EOF
+      notify: restart httpd
+
+    - name: Harden ServerSignature in the main httpd configuration
+      ansible.builtin.lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: "^ServerSignature"
+        line: "ServerSignature Off"
+        insertafter: EOF
+      notify: restart httpd
+
+    - name: Manage the portal virtual host with a block
+      ansible.builtin.blockinfile:
+        path: /etc/httpd/conf.d/opsportal.conf
+        create: true
+        owner: root
+        group: root
+        mode: "0644"
+        marker: "# {mark} ANSIBLE MANAGED OPSPORTAL"
+        block: |
+          ServerAdmin {{ portal_server_admin }}
+
+          <Directory "{{ portal_docroot }}">
+              AllowOverride None
+              Require all granted
+          </Directory>
+
+          DocumentRoot "{{ portal_docroot }}"
+      notify: restart httpd
+
+    - name: Ensure httpd is enabled and started
+      ansible.builtin.systemd_service:
+        name: httpd
+        enabled: true
+        state: started
+
+    - name: Open the HTTP service in the firewall
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        immediate: true
+        state: enabled
+
+  handlers:
+    - name: restart httpd
+      ansible.builtin.systemd_service:
+        name: httpd
+        state: restarted

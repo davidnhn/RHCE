@@ -1,0 +1,250 @@
+---
+- name: Apply the baseline role on all hosts
+  hosts: all
+  become: true
+  roles:
+    - role: baseline_common
+      tags:
+        - baseline
+
+- name: Deploy the managed website
+  hosts: web
+  become: true
+  roles:
+    - role: managed_httpd
+      tags:
+        - web
+
+- name: Configure ops access
+  hosts: ops
+  become: true
+  tasks:
+    - name: Ensure ops groups exist
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - ops
+        - wheel
+
+    - name: Ensure ops users exist
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        group: ops
+        groups: wheel
+        append: true
+        shell: /bin/bash
+        create_home: true
+        state: present
+      loop: "{{ mock_ops_users }}"
+
+    - name: Install SSH keys from local files
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        state: present
+        key: "{{ lookup('file', 'keys/' ~ item.name ~ '.pub') }}"
+      loop: "{{ mock_ops_users }}"
+
+    - name: Deploy sudo policy for the ops group
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/99-mock-ops
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+        content: |
+          # Managed by Ansible
+          %ops ALL=(ALL) NOPASSWD: ALL
+
+- name: Configure persistent storage
+  hosts: storage
+  become: true
+  tasks:
+    - name: Install LVM tooling
+      ansible.builtin.dnf:
+        name: lvm2
+        state: present
+
+    - name: Ensure the mountpoint exists
+      ansible.builtin.file:
+        path: "{{ mock_storage_mount_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create or extend the volume group
+      community.general.lvg:
+        vg: "{{ mock_storage_vg }}"
+        pvs: "{{ mock_storage_device }}"
+
+    - name: Create the logical volume
+      community.general.lvol:
+        vg: "{{ mock_storage_vg }}"
+        lv: "{{ mock_storage_lv }}"
+        size: "{{ mock_storage_lv_size }}"
+
+    - name: Create the filesystem
+      community.general.filesystem:
+        fstype: "{{ mock_storage_fs_type }}"
+        dev: "/dev/{{ mock_storage_vg }}/{{ mock_storage_lv }}"
+
+    - name: Mount the filesystem persistently
+      ansible.posix.mount:
+        path: "{{ mock_storage_mount_path }}"
+        src: "/dev/{{ mock_storage_vg }}/{{ mock_storage_lv }}"
+        fstype: "{{ mock_storage_fs_type }}"
+        opts: defaults
+        state: mounted
+
+- name: Generate a facts report
+  hosts: report
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Compute a safe primary IP
+      ansible.builtin.set_fact:
+        mock_report_primary_ip: >-
+          {{
+            ansible_default_ipv4.address
+            | default(ansible_all_ipv4_addresses[0] | default('no-ip-detected'))
+          }}
+
+    - name: Ensure the report directory exists
+      ansible.builtin.file:
+        path: /etc/rhce-mock
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Render the report
+      ansible.builtin.template:
+        src: templates/report.j2
+        dest: /etc/rhce-mock/report.txt
+        owner: root
+        group: root
+        mode: "0644"
+
+- name: Configure scheduled backups
+  hosts: backup
+  become: true
+  tasks:
+    - name: Install cron tooling
+      ansible.builtin.dnf:
+        name: cronie
+        state: present
+
+    - name: Ensure the source and backup directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ mock_backup_source_dir }}"
+        - "{{ mock_backup_archive_dir }}"
+
+    - name: Seed the backup source directory
+      ansible.builtin.copy:
+        dest: "{{ mock_backup_source_dir }}/README.txt"
+        content: "Mock exam backup content managed by Ansible.\n"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Deploy the backup script
+      ansible.builtin.template:
+        src: templates/mock-backup.sh.j2
+        dest: /usr/local/bin/mock-backup.sh
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Schedule the recurring backup job
+      ansible.builtin.cron:
+        name: Mock exam backup job
+        cron_file: rhce-mock-backup
+        user: root
+        minute: "{{ mock_backup_minute }}"
+        hour: "{{ mock_backup_hour }}"
+        job: /usr/local/bin/mock-backup.sh
+
+- name: Deploy a vault backed secret
+  hosts: secure
+  become: true
+  vars_files:
+    - vars/mock-vault.yml
+  tasks:
+    - name: Ensure the secure app directory exists
+      ansible.builtin.file:
+        path: /etc/rhce-mock
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Deploy the secret environment file
+      ansible.builtin.template:
+        src: templates/app.env.j2
+        dest: /etc/rhce-mock/app.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+- name: Harden SSH with validation and rollback
+  hosts: secure
+  become: true
+  tasks:
+    - name: Manage SSH safely
+      block:
+        - name: Deploy the SSH hardening drop-in
+          ansible.builtin.template:
+            src: templates/99-mock-hardening.conf.j2
+            dest: /etc/ssh/sshd_config.d/99-mock-hardening.conf
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Validate the SSH configuration
+          ansible.builtin.command: /usr/sbin/sshd -t
+          register: mock_sshd_validation
+          changed_when: false
+          failed_when: mock_sshd_validation.rc != 0
+
+        - name: Restart sshd
+          ansible.builtin.systemd_service:
+            name: sshd
+            state: restarted
+
+        - name: Wait for SSH on port 22
+          ansible.builtin.wait_for:
+            port: 22
+            timeout: 15
+
+      rescue:
+        - name: Remove the failing hardening file
+          ansible.builtin.file:
+            path: /etc/ssh/sshd_config.d/99-mock-hardening.conf
+            state: absent
+
+        - name: Restart sshd after rollback
+          ansible.builtin.systemd_service:
+            name: sshd
+            state: restarted
+
+        - name: Fail with an explicit message
+          ansible.builtin.fail:
+            msg: SSH hardening failed. Rollback applied.
+
+      always:
+        - name: Collect the final SSH service state
+          ansible.builtin.command: systemctl is-active sshd
+          register: mock_sshd_state
+          changed_when: false
+
+        - name: Show the final SSH service state
+          ansible.builtin.debug:
+            var: mock_sshd_state.stdout

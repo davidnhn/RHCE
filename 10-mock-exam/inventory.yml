@@ -1,0 +1,26 @@
+all:
+  children:
+    web:
+      hosts:
+        web1:
+          ansible_host: 192.0.2.101
+    ops:
+      hosts:
+        ops1:
+          ansible_host: 192.0.2.102
+    storage:
+      hosts:
+        storage1:
+          ansible_host: 192.0.2.103
+    report:
+      hosts:
+        report1:
+          ansible_host: 192.0.2.104
+    backup:
+      hosts:
+        backup1:
+          ansible_host: 192.0.2.105
+    secure:
+      hosts:
+        secure1:
+          ansible_host: 192.0.2.106

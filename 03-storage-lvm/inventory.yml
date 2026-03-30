@@ -1,0 +1,6 @@
+# Groupe "storage" pour les hotes qui doivent recevoir le stockage applicatif.
+all:
+  children:
+    storage:
+      hosts:
+        storage1.example.com:

@@ -1,0 +1,60 @@
+---
+- name: Build persistent application storage
+  hosts: storage
+  become: true
+
+  tasks:
+    - name: Ensure LVM tooling is installed
+      ansible.builtin.dnf:
+        name: lvm2
+        state: present
+
+    - name: Check that the declared storage device exists
+      # Le PDF insiste sur les prechecks: un mauvais device fait perdre du temps.
+      ansible.builtin.stat:
+        path: "{{ storage_device }}"
+      register: storage_device_status
+
+    - name: Stop early if the storage device is missing
+      ansible.builtin.assert:
+        that:
+          - storage_device_status.stat.exists
+        fail_msg: "The configured storage device {{ storage_device }} does not exist on the target host."
+
+    - name: Ensure the mount directory exists
+      ansible.builtin.file:
+        path: "{{ storage_mount_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create or extend the volume group
+      # community.general.lvg est pratique pour rester idempotent.
+      # vg = nom du volume group ; pvs = disque ou partition utilise(e).
+      community.general.lvg:
+        vg: "{{ storage_vg }}"
+        pvs: "{{ storage_device }}"
+
+    - name: Create the logical volume
+      # lv = nom du logical volume ; size = taille voulue.
+      community.general.lvol:
+        vg: "{{ storage_vg }}"
+        lv: "{{ storage_lv }}"
+        size: "{{ storage_lv_size }}"
+
+    - name: Create the filesystem
+      # On cree le systeme de fichiers sur le LV.
+      community.general.filesystem:
+        fstype: "{{ storage_fs_type }}"
+        dev: "/dev/{{ storage_vg }}/{{ storage_lv }}"
+
+    - name: Mount the filesystem and persist it
+      # state: mounted gere le montage et l'entree fstab.
+      # C'est un point important du RHCE: le stockage doit rester correct apres reboot.
+      ansible.posix.mount:
+        path: "{{ storage_mount_path }}"
+        src: "/dev/{{ storage_vg }}/{{ storage_lv }}"
+        fstype: "{{ storage_fs_type }}"
+        opts: "{{ storage_mount_opts }}"
+        state: mounted

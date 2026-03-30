@@ -1,0 +1,5 @@
+---
+# Exemple simple de precedence.
+# web2 surcharge juste le message de la page d'accueil.
+
+managed_httpd_index_message: Host specific content coming from host_vars.

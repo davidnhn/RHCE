@@ -1,0 +1,7 @@
+# Groupe "ssh_nodes" pour les machines sur lesquelles on gere la configuration SSH.
+all:
+  children:
+    ssh_nodes:
+      hosts:
+        bastion1.example.com:
+        bastion2.example.com:

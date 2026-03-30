@@ -1,0 +1,58 @@
+---
+- name: Build a host report from gathered facts
+  hosts: report
+  become: true
+  # gather_facts collecte automatiquement les informations systeme au debut du play.
+  gather_facts: true
+
+  tasks:
+    - name: Compute a safe primary IP
+      # On prevoit un fallback pour eviter qu'un fact reseau manquant casse le playbook.
+      ansible.builtin.set_fact:
+        report_primary_ip: >-
+          {{
+            ansible_default_ipv4.address
+            | default(ansible_all_ipv4_addresses[0] | default('no-ip-detected'))
+          }}
+
+    - name: Compute memory in GB
+      # set_fact cree une variable utilisable par les taches suivantes sur l'hote courant.
+      ansible.builtin.set_fact:
+        report_memory_gb: "{{ (ansible_memtotal_mb / 1024) | round(1) }}"
+
+    - name: Collect the short hostname through a command
+      # register capture la sortie, ce qui est tres utile pour conditions et debug.
+      ansible.builtin.command: hostnamectl --static
+      register: report_hostname_cmd
+      changed_when: false
+
+    - name: Show the raw command output as lines
+      # stdout_lines est souvent plus pratique que stdout pour relire proprement.
+      ansible.builtin.debug:
+        var: report_hostname_cmd.stdout_lines
+
+    - name: Ensure the report directory exists
+      ansible.builtin.file:
+        path: /etc/rhce-lab
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Show the selected data points
+      # debug aide a comprendre ce que le playbook "voit" avant de templater.
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Primary IP: {{ report_primary_ip }}"
+          - "Memory GB: {{ report_memory_gb }}"
+          - "Hostname command output: {{ report_hostname_cmd.stdout }}"
+
+    - name: Render the report from a template
+      # Le template permet d'inserer facts et variables dans un fichier final.
+      ansible.builtin.template:
+        src: templates/app-report.j2
+        dest: /etc/rhce-lab/app-report.txt
+        owner: root
+        group: root
+        mode: "0644"

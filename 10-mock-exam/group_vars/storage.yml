@@ -1,0 +1,7 @@
+---
+mock_storage_device: /dev/sdb
+mock_storage_vg: vg_mock
+mock_storage_lv: lv_data
+mock_storage_lv_size: 100%FREE
+mock_storage_fs_type: xfs
+mock_storage_mount_path: /srv/mockdata

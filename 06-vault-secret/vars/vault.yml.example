@@ -1,0 +1,6 @@
+---
+# Copiez ce fichier vers vars/vault.yml puis chiffrez-le avec ansible-vault.
+
+app_name: rhce-training-app
+app_db_user: rhce_user
+app_db_password: ReplaceMeWithAStrongSecret

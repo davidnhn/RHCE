@@ -1,0 +1,16 @@
+Managed by Ansible
+
+Host: {{ inventory_hostname }}
+Short hostname command: {{ report_hostname_cmd.stdout }}
+FQDN: {{ ansible_fqdn | default('unknown') }}
+OS family: {{ ansible_os_family }}
+Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+Primary IP: {{ report_primary_ip }}
+Memory (GB): {{ report_memory_gb }}
+Kernel: {{ ansible_kernel }}
+
+{% if ansible_os_family == 'RedHat' %}
+Hint: this node belongs to a Red Hat family system.
+{% else %}
+Hint: adapt package and service names if you reuse this play elsewhere.
+{% endif %}

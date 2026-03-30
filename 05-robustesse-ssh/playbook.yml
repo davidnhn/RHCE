@@ -1,0 +1,65 @@
+---
+- name: Harden SSH with validation and rollback
+  hosts: ssh_nodes
+  become: true
+
+  tasks:
+    - name: Manage sshd safely
+      # block/rescue/always ressemble a try/catch/finally.
+      # C'est tres utile quand une modification de service peut casser l'acces.
+      block:
+        - name: Deploy the SSH hardening drop-in
+          # On place notre conf dans sshd_config.d plutot que de reecrire le gros fichier principal.
+          ansible.builtin.template:
+            src: templates/99-rhce-hardening.conf.j2
+            dest: "{{ ssh_dropin_path }}"
+            owner: root
+            group: root
+            mode: "0600"
+
+        - name: Validate the final sshd configuration
+          # changed_when false: on verifie, mais on ne "change" rien.
+          ansible.builtin.command: /usr/sbin/sshd -t
+          register: sshd_validation
+          changed_when: false
+          failed_when: sshd_validation.rc != 0
+
+        - name: Restart sshd after a successful validation
+          # On ne redemarre qu'apres validation de la syntaxe.
+          ansible.builtin.systemd_service:
+            name: sshd
+            state: restarted
+
+        - name: Wait for SSH to answer on port 22
+          # wait_for permet d'attendre qu'un port ou un service reponde.
+          ansible.builtin.wait_for:
+            port: 22
+            timeout: 15
+
+      rescue:
+        - name: Remove the managed SSH hardening file
+          # Si la conf pose probleme, on retire notre fichier gere.
+          ansible.builtin.file:
+            path: "{{ ssh_dropin_path }}"
+            state: absent
+
+        - name: Restart sshd with the previous configuration
+          ansible.builtin.systemd_service:
+            name: sshd
+            state: restarted
+
+        - name: Stop the play with a clear message
+          # fail arrete volontairement le play avec un message comprehensible.
+          ansible.builtin.fail:
+            msg: "The SSH hardening file failed validation or restart. Rollback applied."
+
+      always:
+        - name: Collect the sshd service state
+          # register capture la sortie de la commande.
+          ansible.builtin.command: systemctl is-active sshd
+          register: sshd_state
+          changed_when: false
+
+        - name: Display the final sshd state
+          ansible.builtin.debug:
+            var: sshd_state.stdout

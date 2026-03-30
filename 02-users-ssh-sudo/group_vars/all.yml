@@ -1,0 +1,25 @@
+---
+# Dans un vrai lab, vous pouvez remplacer les cles par vos vraies cles de test.
+# Ici elles sont volontairement fictives mais au bon format.
+
+ops_groups:
+  - ops
+  - wheel
+
+ops_users:
+  - name: alice
+    uid: 2001
+    primary_group: ops
+    extra_groups:
+      - wheel
+    shell: /bin/bash
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIALICEEXAMPLERHCEKEY alice@example"
+  - name: bob
+    uid: 2002
+    primary_group: ops
+    extra_groups:
+      - wheel
+    shell: /bin/bash
+    ssh_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBOBEXAMPLERHCEKEY bob@example"
+
+ops_sudo_rule: "%ops ALL=(ALL) NOPASSWD: ALL"

@@ -1,0 +1,18 @@
+---
+backup_source_dir: /srv/appdata
+backup_archive_dir: /var/backups/appdata
+backup_script_path: /usr/local/bin/archive-appdata.sh
+backup_cron_file: rhce-appdata
+backup_hour: "01"
+backup_minute: "15"
+backup_create_initial_archive: false
+
+backup_seed_files:
+  - name: app.ini
+    content: |
+      [app]
+      mode=training
+      owner=ops
+  - name: README.txt
+    content: |
+      This directory is managed by Ansible for backup training.

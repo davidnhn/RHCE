@@ -1,0 +1,7 @@
+# Groupe "report" pour les hotes qui recoivent un fichier genere depuis les facts.
+all:
+  children:
+    report:
+      hosts:
+        report1.example.com:
+        report2.example.com:

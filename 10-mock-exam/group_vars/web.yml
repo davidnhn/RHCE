@@ -1,0 +1,10 @@
+---
+managed_httpd_packages:
+  - httpd
+  - firewalld
+
+managed_httpd_docroot: /var/www/mock-site
+managed_httpd_index_title: RHCE mock portal
+managed_httpd_index_message: Delivered by the mock exam role.
+managed_httpd_server_admin: mock-web@example.com
+managed_httpd_firewall_service: http

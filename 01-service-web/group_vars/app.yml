@@ -1,0 +1,14 @@
+---
+# Variables de groupe pour le scenario "service web".
+# Le but est de montrer une separation propre entre logique et donnees.
+
+app_packages:
+  - httpd
+  - firewalld
+
+app_service_name: httpd
+app_firewall_service: http
+app_docroot: /var/www/html
+app_server_admin: ops@example.com
+app_index_title: RHCE training web node
+app_index_message: This page is managed by Ansible.

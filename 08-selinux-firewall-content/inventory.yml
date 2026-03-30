@@ -1,0 +1,6 @@
+all:
+  children:
+    portal:
+      hosts:
+        portal1:
+          ansible_host: 192.0.2.31

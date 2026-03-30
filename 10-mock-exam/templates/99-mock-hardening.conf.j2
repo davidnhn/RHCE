@@ -1,0 +1,4 @@
+# Managed by Ansible
+PasswordAuthentication {{ mock_ssh_password_authentication }}
+PermitRootLogin {{ mock_ssh_permit_root_login }}
+AllowUsers {{ mock_ssh_allowed_users | join(' ') }}

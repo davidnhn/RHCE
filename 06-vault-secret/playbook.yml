@@ -1,0 +1,28 @@
+---
+- name: Deploy an application secret with Ansible Vault
+  hosts: secret_app
+  become: true
+  # vars_files charge des variables depuis un fichier externe.
+  # Ici, ce fichier est pense pour etre chiffre avec ansible-vault.
+  vars_files:
+    - vars/vault.yml
+
+  tasks:
+    - name: Ensure the application config directory exists
+      ansible.builtin.file:
+        path: /etc/rhce-app
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Deploy the secret environment file
+      # no_log evite d'afficher le secret dans la sortie Ansible.
+      # template permet d'inserer les variables secrete dans le fichier final.
+      ansible.builtin.template:
+        src: templates/app.env.j2
+        dest: /etc/rhce-app/app.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true

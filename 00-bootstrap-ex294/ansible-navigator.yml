@@ -1,0 +1,8 @@
+---
+ansible-navigator:
+  # Ce fichier montre que navigator fait partie du workflow EX294.
+  execution-environment:
+    enabled: false
+  mode: stdout
+  playbook-artifact:
+    enable: false

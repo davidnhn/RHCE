@@ -1,0 +1,7 @@
+# Groupe "managed" = toutes les machines ou l'on veut creer les comptes ops.
+all:
+  children:
+    managed:
+      hosts:
+        node1.example.com:
+        node2.example.com:

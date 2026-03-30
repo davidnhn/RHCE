@@ -1,0 +1,6 @@
+---
+# Variables communes pour le smoke test.
+
+ansible_user: student
+bootstrap_marker_file: /var/tmp/ansible-bootstrap.txt
+bootstrap_message: Bootstrapped from the EX294 starter scenario.

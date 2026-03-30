@@ -1,0 +1,8 @@
+# Managed by Ansible role
+ServerAdmin {{ managed_httpd_server_admin }}
+DocumentRoot "{{ managed_httpd_docroot }}"
+
+<Directory "{{ managed_httpd_docroot }}">
+    AllowOverride None
+    Require all granted
+</Directory>

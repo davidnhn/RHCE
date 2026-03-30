@@ -1,0 +1,52 @@
+---
+- name: Create ops accounts with ssh access and sudo
+  hosts: managed
+  become: true
+
+  tasks:
+    - name: Ensure required groups exist
+      # "loop" repete la tache pour chaque element de la liste ops_groups.
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ ops_groups }}"
+
+    - name: Ensure ops users exist
+      # append: true evite d'ecraser les groupes deja presents.
+      # item.name, item.uid, etc. viennent de la liste de dictionnaires "ops_users".
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: "{{ item.primary_group }}"
+        groups: "{{ item.extra_groups }}"
+        append: true
+        shell: "{{ item.shell }}"
+        create_home: true
+        state: present
+      loop: "{{ ops_users }}"
+
+    - name: Install SSH authorized keys
+      # Ce module ajoute une cle SSH dans authorized_keys de facon idempotente.
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        state: present
+        key: "{{ item.ssh_key }}"
+      loop: "{{ ops_users }}"
+
+    - name: Deploy sudo policy for the ops group
+      # validate permet de verifier la syntaxe avant d'ecrire le fichier final.
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/99-ops
+        owner: root
+        group: root
+        mode: "0440"
+        validate: /usr/sbin/visudo -cf %s
+        content: |
+          # Managed by Ansible
+          {{ ops_sudo_rule }}
+
+    - name: Show a quick summary for each user
+      # debug n'est pas obligatoire, mais tres pratique pour apprendre et diagnostiquer.
+      ansible.builtin.debug:
+        msg: "User {{ item.name }} should exist with primary group {{ item.primary_group }}"
+      loop: "{{ ops_users }}"

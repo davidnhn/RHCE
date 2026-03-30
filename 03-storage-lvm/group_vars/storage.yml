@@ -1,0 +1,10 @@
+---
+# Adaptez ce device a votre lab avant de lancer le playbook.
+
+storage_device: /dev/sdb
+storage_vg: vg_app
+storage_lv: lv_data
+storage_lv_size: 100%FREE
+storage_fs_type: xfs
+storage_mount_path: /srv/appdata
+storage_mount_opts: defaults

@@ -1,0 +1,10 @@
+# Inventaire statique YAML.
+# Le PDF insiste sur l'importance de savoir le lire et le verifier rapidement.
+all:
+  children:
+    bootstrap:
+      hosts:
+        node1:
+          ansible_host: 192.0.2.11
+        node2:
+          ansible_host: 192.0.2.12

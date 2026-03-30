@@ -1,0 +1,5 @@
+---
+mock_backup_source_dir: /srv/mock-backup-source
+mock_backup_archive_dir: /var/backups/mock
+mock_backup_hour: "02"
+mock_backup_minute: "30"

@@ -1,0 +1,8 @@
+Managed by Ansible
+
+Host: {{ inventory_hostname }}
+FQDN: {{ ansible_fqdn | default('unknown') }}
+OS family: {{ ansible_os_family }}
+Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+Primary IP: {{ mock_report_primary_ip }}
+Kernel: {{ ansible_kernel }}

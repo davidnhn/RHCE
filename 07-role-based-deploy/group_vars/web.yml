@@ -1,0 +1,11 @@
+---
+managed_httpd_packages:
+  - httpd
+  - firewalld
+
+managed_httpd_service_name: httpd
+managed_httpd_firewall_service: http
+managed_httpd_docroot: /var/www/role-site
+managed_httpd_index_title: Role based training portal
+managed_httpd_index_message: This site was deployed from an Ansible role.
+managed_httpd_server_admin: ops@example.com

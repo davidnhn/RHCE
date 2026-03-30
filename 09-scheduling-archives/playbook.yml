@@ -1,0 +1,56 @@
+---
+- name: Schedule recurring archives of application data
+  hosts: backup
+  become: true
+
+  tasks:
+    - name: Ensure cron tooling is installed
+      ansible.builtin.dnf:
+        name: cronie
+        state: present
+
+    - name: Ensure the source and archive directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - "{{ backup_source_dir }}"
+        - "{{ backup_archive_dir }}"
+
+    - name: Seed the application data directory
+      ansible.builtin.copy:
+        dest: "{{ backup_source_dir }}/{{ item.name }}"
+        content: "{{ item.content }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop: "{{ backup_seed_files }}"
+
+    - name: Deploy the archive script
+      ansible.builtin.template:
+        src: templates/archive-appdata.sh.j2
+        dest: "{{ backup_script_path }}"
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Schedule the recurring archive job
+      ansible.builtin.cron:
+        name: Archive application data
+        cron_file: "{{ backup_cron_file }}"
+        user: root
+        minute: "{{ backup_minute }}"
+        hour: "{{ backup_hour }}"
+        job: "{{ backup_script_path }}"
+
+    - name: Optionally create an immediate bootstrap archive
+      community.general.archive:
+        path: "{{ backup_source_dir }}"
+        dest: "{{ backup_archive_dir }}/bootstrap-archive.tar.gz"
+        format: gz
+      when: backup_create_initial_archive | bool
+      tags:
+        - archive_now

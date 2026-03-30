@@ -1,0 +1,29 @@
+---
+- name: Validate bootstrap connectivity and project structure
+  hosts: bootstrap
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check that the target answers to ping
+      ansible.builtin.ping:
+
+    - name: Read the hostname with a safe diagnostic command
+      ansible.builtin.command: hostnamectl --static
+      register: bootstrap_hostname
+      changed_when: false
+
+    - name: Create a smoke marker file
+      ansible.builtin.copy:
+        dest: "{{ bootstrap_marker_file }}"
+        content: |
+          Managed by Ansible
+          Host: {{ bootstrap_hostname.stdout }}
+          Message: {{ bootstrap_message }}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Show the resolved hostname
+      ansible.builtin.debug:
+        msg: "Smoke test completed for {{ bootstrap_hostname.stdout }}"

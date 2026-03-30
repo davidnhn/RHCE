@@ -1,0 +1,11 @@
+---
+managed_httpd_packages:
+  - httpd
+  - firewalld
+
+managed_httpd_service_name: httpd
+managed_httpd_firewall_service: http
+managed_httpd_docroot: /var/www/html
+managed_httpd_index_title: Training site
+managed_httpd_index_message: Managed by role
+managed_httpd_server_admin: webmaster@example.com

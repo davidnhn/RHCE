@@ -1,0 +1,4 @@
+---
+mock_ops_users:
+  - name: alice
+  - name: bob

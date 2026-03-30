@@ -1,0 +1,6 @@
+---
+mock_ssh_password_authentication: "no"
+mock_ssh_permit_root_login: "no"
+mock_ssh_allowed_users:
+  - alice
+  - bob

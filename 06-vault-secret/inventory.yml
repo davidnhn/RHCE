@@ -1,0 +1,6 @@
+# Groupe "secret_app" pour les hotes qui recoivent un fichier avec secret gere par Vault.
+all:
+  children:
+    secret_app:
+      hosts:
+        secret1.example.com:

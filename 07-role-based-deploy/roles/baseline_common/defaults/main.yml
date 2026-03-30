@@ -1,0 +1,6 @@
+---
+baseline_packages:
+  - vim-enhanced
+  - bash-completion
+
+baseline_motd_environment: role-lab

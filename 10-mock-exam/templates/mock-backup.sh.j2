@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+archive_path="{{ mock_backup_archive_dir }}/mock-${timestamp}.tar.gz"
+
+tar -czf "${archive_path}" -C "{{ mock_backup_source_dir }}" .

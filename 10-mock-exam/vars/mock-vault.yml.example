@@ -1,0 +1,4 @@
+---
+app_name: rhce-mock-app
+app_db_user: rhce_mock_user
+app_db_password: ReplaceMeBeforeEncrypting

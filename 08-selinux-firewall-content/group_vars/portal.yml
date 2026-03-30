@@ -1,0 +1,10 @@
+---
+portal_packages:
+  - httpd
+  - firewalld
+  - policycoreutils-python-utils
+
+portal_docroot: /srv/opsportal
+portal_server_admin: security-ops@example.com
+portal_index_title: Internal ops portal
+portal_index_message: This content is managed with SELinux-aware automation.

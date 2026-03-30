@@ -1,0 +1,10 @@
+# Inventaire statique YAML.
+# "all" est la racine.
+# "children" contient les groupes.
+# Le playbook cible le groupe "app", donc tous les hotes ci-dessous.
+all:
+  children:
+    app:
+      hosts:
+        app1.example.com:
+        app2.example.com:
