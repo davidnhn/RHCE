@@ -19,10 +19,14 @@ Chaque scenario contient :
 - les fichiers associes (`group_vars`, `templates`, etc.)
 - un `verify.sh` pour penser "etat final" comme a l'examen
 - un `README.md` tres court pour savoir ce que le scenario vous entraine a faire
+- parfois un `validate.yml` pour une verification Ansible plus structuree
+- parfois un `ansible.cfg` local pour illustrer un vrai workflow de projet
 
 Si vous debutez avec Ansible, lisez d'abord :
 
 - [SYNTAXE-ANSIBLE-DEBUTANT.md](c:/Users/david/Documents/RHCE/rhce-ex294-scenarios/SYNTAXE-ANSIBLE-DEBUTANT.md)
+- [ADAPTER-LE-LAB.md](c:/Users/david/Documents/RHCE/rhce-ex294-scenarios/ADAPTER-LE-LAB.md)
+- [LOGGING-ET-DEBUG.md](c:/Users/david/Documents/RHCE/rhce-ex294-scenarios/LOGGING-ET-DEBUG.md)
 
 Workflow conseille :
 

@@ -1,0 +1,30 @@
+---
+- name: Validate the managed web service state
+  hosts: app
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Read the current firewall services
+      ansible.builtin.command: firewall-cmd --list-services
+      register: web_firewall_services
+      changed_when: false
+
+    - name: Check the local HTTP endpoint
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+      register: web_uri
+      changed_when: false
+
+    - name: Assert the final web service state
+      ansible.builtin.assert:
+        that:
+          - "'httpd.service' in ansible_facts.services"
+          - ansible_facts.services['httpd.service'].state == 'running'
+          - "'http' in web_firewall_services.stdout.split()"
+          - inventory_hostname in web_uri.content
+        fail_msg: "The managed web service does not match the expected final state."

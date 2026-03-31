@@ -1,0 +1,129 @@
+---
+- name: Validate the mock exam web state
+  hosts: web
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Read the current firewall services
+      ansible.builtin.command: firewall-cmd --list-services
+      register: mock_web_firewall_services
+      changed_when: false
+
+    - name: Check the local HTTP endpoint
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+      register: mock_web_uri
+      changed_when: false
+
+    - name: Assert the web final state
+      ansible.builtin.assert:
+        that:
+          - "'httpd.service' in ansible_facts.services"
+          - ansible_facts.services['httpd.service'].state == 'running'
+          - "'http' in mock_web_firewall_services.stdout.split()"
+          - inventory_hostname in mock_web_uri.content
+
+- name: Validate the mock exam ops state
+  hosts: ops
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check the alice account
+      ansible.builtin.command: id alice
+      register: mock_id_alice
+      changed_when: false
+
+    - name: Check the bob account
+      ansible.builtin.command: id bob
+      register: mock_id_bob
+      changed_when: false
+
+    - name: Validate the sudo policy
+      ansible.builtin.command: /usr/sbin/visudo -cf /etc/sudoers.d/99-mock-ops
+      register: mock_ops_sudo
+      changed_when: false
+
+    - name: Assert the ops final state
+      ansible.builtin.assert:
+        that:
+          - mock_id_alice.rc == 0
+          - mock_id_bob.rc == 0
+          - mock_ops_sudo.rc == 0
+
+- name: Validate the mock exam storage state
+  hosts: storage
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check the mountpoint
+      ansible.builtin.command: findmnt /srv/mockdata
+      register: mock_storage_mount
+      changed_when: false
+
+    - name: Assert the storage final state
+      ansible.builtin.assert:
+        that:
+          - mock_storage_mount.rc == 0
+
+- name: Validate the mock exam report state
+  hosts: report
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Read the rendered report
+      ansible.builtin.command: cat /etc/rhce-mock/report.txt
+      register: mock_report_file
+      changed_when: false
+
+    - name: Assert the report final state
+      ansible.builtin.assert:
+        that:
+          - mock_report_file.rc == 0
+          - "'Managed by Ansible' in mock_report_file.stdout"
+
+- name: Validate the mock exam backup state
+  hosts: backup
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Check the cron file
+      ansible.builtin.command: cat /etc/cron.d/rhce-mock-backup
+      register: mock_backup_cron
+      changed_when: false
+
+    - name: Assert the backup final state
+      ansible.builtin.assert:
+        that:
+          - mock_backup_cron.rc == 0
+          - "'/usr/local/bin/mock-backup.sh' in mock_backup_cron.stdout"
+
+- name: Validate the mock exam secure state
+  hosts: secure
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Validate the SSH configuration
+      ansible.builtin.command: /usr/sbin/sshd -t
+      register: mock_secure_sshd
+      changed_when: false
+
+    - name: Check the secure environment file
+      ansible.builtin.command: test -f /etc/rhce-mock/app.env
+      register: mock_secure_env
+      changed_when: false
+
+    - name: Assert the secure final state
+      ansible.builtin.assert:
+        that:
+          - mock_secure_sshd.rc == 0
+          - mock_secure_env.rc == 0

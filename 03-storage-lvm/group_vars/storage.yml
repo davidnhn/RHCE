@@ -1,7 +1,8 @@
 ---
-# Adaptez ce device a votre lab avant de lancer le playbook.
+# "auto" essaie de detecter un disque libre simple via lsblk.
+# Vous pouvez aussi forcer explicitement un device, par exemple /dev/sdb.
 
-storage_device: /dev/sdb
+storage_device: auto
 storage_vg: vg_app
 storage_lv: lv_data
 storage_lv_size: 100%FREE

@@ -23,3 +23,4 @@ ansible-navigator run playbook.yml -i inventory.yml --mode stdout
 - bien utiliser `append: true`
 - modeliser les donnees dans une liste de dictionnaires
 - verifier l'etat reel avec `id`, `getent`, `sudo -l`
+- voir comment transformer ce besoin en role reutilisable

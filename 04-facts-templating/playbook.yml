@@ -20,6 +20,14 @@
       ansible.builtin.set_fact:
         report_memory_gb: "{{ (ansible_memtotal_mb / 1024) | round(1) }}"
 
+    - name: Fail clearly if network facts are required but missing
+      # Ce garde-fou rend le comportement plus explicite en lab ou en examen.
+      ansible.builtin.assert:
+        that:
+          - report_primary_ip != 'no-ip-detected'
+        fail_msg: "No usable IPv4 fact was found. Check gather_facts or override the expected network data."
+      when: report_require_network_facts | default(false)
+
     - name: Collect the short hostname through a command
       # register capture la sortie, ce qui est tres utile pour conditions et debug.
       ansible.builtin.command: hostnamectl --static

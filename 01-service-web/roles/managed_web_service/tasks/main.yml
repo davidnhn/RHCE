@@ -1,0 +1,64 @@
+---
+- name: Install required packages
+  # Le role reprend la logique du scenario original, mais dans une structure reusable.
+  ansible.builtin.dnf:
+    name: "{{ app_packages }}"
+    state: present
+
+- name: Ensure firewalld is enabled and running
+  ansible.builtin.systemd_service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Ensure the web document root exists
+  ansible.builtin.file:
+    path: "{{ app_docroot }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the httpd managed configuration
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/training.conf.j2"
+    dest: /etc/httpd/conf.d/training.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart httpd
+
+- name: Deploy the managed home page
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/index.html.j2"
+    dest: "{{ app_docroot }}/index.html"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Validate the full httpd configuration
+  # On valide avant de considerer le service comme deploye correctement.
+  ansible.builtin.command: /usr/sbin/httpd -t
+  register: app_httpd_validation
+  changed_when: false
+  failed_when: app_httpd_validation.rc != 0
+
+- name: Ensure httpd is enabled and started
+  ansible.builtin.systemd_service:
+    name: "{{ app_service_name }}"
+    enabled: true
+    state: started
+
+- name: Open the firewall service permanently and immediately
+  ansible.posix.firewalld:
+    service: "{{ app_firewall_service }}"
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Show a short deployment summary
+  ansible.builtin.debug:
+    msg:
+      - "Validated httpd configuration on {{ inventory_hostname }}"
+      - "Document root: {{ app_docroot }}"
+      - "Firewall service opened: {{ app_firewall_service }}"

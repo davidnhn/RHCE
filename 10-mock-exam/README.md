@@ -37,6 +37,7 @@ ansible-vault encrypt vars/mock-vault.yml
 ansible-galaxy collection install -r requirements.yml
 ansible-inventory -i inventory.yml --list -y
 ansible-navigator run site.yml -i inventory.yml --mode stdout --ask-vault-pass
+ansible-navigator run validate.yml -i inventory.yml --mode stdout
 ```
 
 ## Ce que ce mock travaille

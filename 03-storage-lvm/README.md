@@ -20,5 +20,9 @@ ansible-navigator run playbook.yml -i inventory.yml --mode stdout
 
 ## Attention
 
-Ce scenario suppose qu'un disque de donnees libre existe deja.
-Adaptez `storage_device` avant execution.
+Ce scenario peut fonctionner de deux facons :
+
+- `storage_device: auto` pour tenter une detection simple d'un disque libre
+- `storage_device: /dev/sdX` si vous preferez fixer explicitement le device
+
+Il montre aussi une version structuree en role reutilisable.

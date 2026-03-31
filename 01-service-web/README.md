@@ -16,6 +16,7 @@ Deployer un service web interne sur un groupe `app` :
 ```bash
 ansible-inventory -i inventory.yml --list -y
 ansible-navigator run playbook.yml -i inventory.yml --mode stdout
+ansible-navigator run validate.yml -i inventory.yml --mode stdout
 ./verify.sh localhost
 ```
 
@@ -24,3 +25,4 @@ ansible-navigator run playbook.yml -i inventory.yml --mode stdout
 - penser "package -> config -> service -> firewall -> verification"
 - utiliser un handler seulement quand il est necessaire
 - eviter le piege du firewall non persistant
+- voir une version structuree avec `role`, validation `httpd -t` et logs Ansible

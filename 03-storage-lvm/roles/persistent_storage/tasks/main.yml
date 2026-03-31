@@ -1,0 +1,79 @@
+---
+- name: Ensure LVM tooling is installed
+  ansible.builtin.dnf:
+    name: lvm2
+    state: present
+
+- name: Inspect block devices
+  ansible.builtin.command: lsblk -nrdo PATH,TYPE,MOUNTPOINT
+  register: storage_lsblk
+  changed_when: false
+
+- name: Resolve the effective storage device
+  # "auto" essaye de trouver un disque simple non monte pour accelerer le lab.
+  ansible.builtin.set_fact:
+    storage_effective_device: >-
+      {{
+        storage_device
+        if storage_device != 'auto'
+        else (
+          storage_lsblk.stdout_lines
+          | select('match', '^/dev/[^ ]+ disk(\\s*)$')
+          | reject('equalto', '/dev/sda disk')
+          | map('regex_replace', '^(/dev/[^ ]+)\\s+disk.*$', '\\1')
+          | first
+          | default('')
+        )
+      }}
+
+- name: Check that the declared storage device exists
+  ansible.builtin.stat:
+    path: "{{ storage_effective_device }}"
+  register: storage_device_status
+
+- name: Stop early if the storage device is missing
+  # Un echec clair vaut mieux qu'un playbook qui continue avec un mauvais device.
+  ansible.builtin.assert:
+    that:
+      - storage_device_status.stat.exists
+    fail_msg: "No usable storage device was found. Set storage_device explicitly if auto-detection is not suitable."
+
+- name: Ensure the mount directory exists
+  ansible.builtin.file:
+    path: "{{ storage_mount_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Create or extend the volume group
+  community.general.lvg:
+    vg: "{{ storage_vg }}"
+    pvs: "{{ storage_effective_device }}"
+
+- name: Create the logical volume
+  community.general.lvol:
+    vg: "{{ storage_vg }}"
+    lv: "{{ storage_lv }}"
+    size: "{{ storage_lv_size }}"
+
+- name: Create the filesystem
+  community.general.filesystem:
+    fstype: "{{ storage_fs_type }}"
+    dev: "/dev/{{ storage_vg }}/{{ storage_lv }}"
+
+- name: Mount the filesystem and persist it
+  ansible.posix.mount:
+    path: "{{ storage_mount_path }}"
+    src: "/dev/{{ storage_vg }}/{{ storage_lv }}"
+    fstype: "{{ storage_fs_type }}"
+    opts: "{{ storage_mount_opts }}"
+    state: mounted
+
+- name: Show a short storage summary
+  ansible.builtin.debug:
+    msg:
+      - "Device used: {{ storage_effective_device }}"
+      - "Volume group: {{ storage_vg }}"
+      - "Logical volume: {{ storage_lv }}"
+      - "Mount path: {{ storage_mount_path }}"

@@ -35,6 +35,12 @@
     group: root
     mode: "0644"
 
+- name: Validate the full httpd configuration
+  ansible.builtin.command: /usr/sbin/httpd -t
+  register: role_httpd_validation
+  changed_when: false
+  failed_when: role_httpd_validation.rc != 0
+
 - name: Ensure the web service is enabled and running
   ansible.builtin.systemd_service:
     name: "{{ managed_httpd_service_name }}"
@@ -47,3 +53,10 @@
     permanent: true
     immediate: true
     state: enabled
+
+- name: Show a short role deployment summary
+  ansible.builtin.debug:
+    msg:
+      - "Validated httpd configuration on {{ inventory_hostname }}"
+      - "Document root: {{ managed_httpd_docroot }}"
+      - "Firewall service opened: {{ managed_httpd_firewall_service }}"

@@ -1,0 +1,49 @@
+---
+- name: Ensure required groups exist
+  # La liste ops_groups permet d'eviter les taches dupliquees.
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ ops_groups }}"
+
+- name: Ensure ops users exist
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    uid: "{{ item.uid }}"
+    group: "{{ item.primary_group }}"
+    groups: "{{ item.extra_groups }}"
+    append: true
+    shell: "{{ item.shell }}"
+    create_home: true
+    state: present
+  loop: "{{ ops_users }}"
+
+- name: Install SSH authorized keys
+  ansible.posix.authorized_key:
+    user: "{{ item.name }}"
+    state: present
+    key: "{{ item.ssh_key }}"
+  loop: "{{ ops_users }}"
+
+- name: Deploy sudo policy for the ops group
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/99-ops
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+    content: |
+      # Managed by Ansible
+      {{ ops_sudo_rule }}
+
+- name: Verify the deployed sudo policy syntax explicitly
+  # validate protege deja l'ecriture, mais cette verification rend le diagnostic plus visible.
+  ansible.builtin.command: /usr/sbin/visudo -cf /etc/sudoers.d/99-ops
+  register: ops_sudo_validation
+  changed_when: false
+  failed_when: ops_sudo_validation.rc != 0
+
+- name: Show a quick summary for each user
+  ansible.builtin.debug:
+    msg: "User {{ item.name }} should exist with primary group {{ item.primary_group }}"
+  loop: "{{ ops_users }}"

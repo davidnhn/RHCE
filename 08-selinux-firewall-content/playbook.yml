@@ -82,6 +82,12 @@
           DocumentRoot "{{ portal_docroot }}"
       notify: restart httpd
 
+    - name: Validate the full httpd configuration
+      ansible.builtin.command: /usr/sbin/httpd -t
+      register: portal_httpd_validation
+      changed_when: false
+      failed_when: portal_httpd_validation.rc != 0
+
     - name: Ensure httpd is enabled and started
       ansible.builtin.systemd_service:
         name: httpd
@@ -94,6 +100,13 @@
         permanent: true
         immediate: true
         state: enabled
+
+    - name: Show a short portal deployment summary
+      ansible.builtin.debug:
+        msg:
+          - "Validated httpd configuration on {{ inventory_hostname }}"
+          - "SELinux docroot: {{ portal_docroot }}"
+          - "HTTP firewall service enabled"
 
   handlers:
     - name: restart httpd

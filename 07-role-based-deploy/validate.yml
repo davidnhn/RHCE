@@ -1,0 +1,29 @@
+---
+- name: Validate the role based HTTP deployment
+  hosts: web
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Collect service facts
+      ansible.builtin.service_facts:
+
+    - name: Read the current firewall services
+      ansible.builtin.command: firewall-cmd --list-services
+      register: role_firewall_services
+      changed_when: false
+
+    - name: Check the local HTTP endpoint
+      ansible.builtin.uri:
+        url: http://localhost/
+        return_content: true
+      register: role_web_uri
+      changed_when: false
+
+    - name: Assert the role based final state
+      ansible.builtin.assert:
+        that:
+          - "'httpd.service' in ansible_facts.services"
+          - ansible_facts.services['httpd.service'].state == 'running'
+          - "'http' in role_firewall_services.stdout.split()"
+          - inventory_hostname in role_web_uri.content

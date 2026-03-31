@@ -16,6 +16,7 @@ Passer d'un playbook simple a un projet mieux structure :
 ansible-galaxy collection install -r requirements.yml
 ansible-inventory -i inventory.yml --list -y
 ansible-navigator run site.yml -i inventory.yml --mode stdout
+ansible-navigator run validate.yml -i inventory.yml --mode stdout
 ```
 
 ## Ce que ce scenario vous apprend
